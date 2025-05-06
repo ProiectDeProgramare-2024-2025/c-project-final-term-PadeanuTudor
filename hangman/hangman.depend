@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1746526088 source:d:\codeblocks projects\hangman\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<time.h>
+
