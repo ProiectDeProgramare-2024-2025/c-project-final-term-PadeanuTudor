@@ -32,12 +32,10 @@ struct LBInput
     int score;
 };
 
-struct LBInput LB[5];
+struct LBInput LB[100];
 
 void ascii()
 {
-    srand(time(NULL)); //Makes Random work
-    printf("\nRandom Word: %s\n",wordList[rand() % WORD_COUNT]); // Get random word
     printf("\033[22;34m _    _ \033[0m                                        \n");
     printf("\033[22;34m| |  | |\033[0m                                        \n");
     printf("\033[22;34m| |__| |\033[0m __ _ _ __   __ _ _ __ ___   __ _ _ __  \n");
@@ -55,27 +53,134 @@ void header()
     printf("1 - Play\n");
     printf("2 - Leaderboard\n");
     printf("3 - History\n");
-    printf("4 - addScore test\n");
     printf("0 - Exit\n");
     printf("\x1b[31m------------------------------------------------\x1b[0m\n");
 }
 
-
-
 void play() {
-   char a;
-   printf("Not implemented please press enter");
-   getchar();
-   scanf("%c", &a );
+    system("cls");
+    srand(time(NULL));
+    int total_score = 0;
+    char play_again = 'y';
+
+    while (play_again == 'y' || play_again == 'Y') {
+        const char *word = wordList[rand() % WORD_COUNT];
+        int len = strlen(word);
+        char display[len + 1];
+        char first = word[0];
+        char last = word[len - 1];
+
+        for (int i = 0; i < len; i++) {
+            display[i] = (word[i] == first || word[i] == last) ? word[i] : '_';
+        }
+        display[len] = '\0';
+
+        int remaining_chances = 5;
+        char guessed[26] = {0};
+        int guesses = 0;
+        int win = 0;
+        int revealed = 1;
+
+        for (int i = 0; i < len; i++) {
+            if (display[i] == '_') revealed = 0;
+        }
+        if (revealed) win = 1;
+
+        while (remaining_chances > 0 && !win) {
+            system("cls");
+            printf("\033[36mWord:\033[0m %s\n", display);
+            printf("\033[33mChances left:\033[0m %d\n", remaining_chances);
+
+            if (guesses > 0) {
+                printf("\033[35mGuessed:\033[0m ");
+                for (int i = 0; i < guesses; i++) printf("%c ", guessed[i]);
+                printf("\n");
+            }
+
+            printf("Enter a letter: ");
+            char c;
+            scanf(" %c", &c);
+            c = tolower(c);
+
+            int duplicate = 0;
+            for (int i = 0; i < guesses; i++) {
+                if (guessed[i] == c) duplicate = 1;
+            }
+
+            if (duplicate) {
+                printf("\033[31mAlready guessed!\033[0m\n");
+                continue;
+            }
+            guessed[guesses++] = c;
+
+            int correct = 0;
+            for (int i = 0; i < len; i++) {
+                if (display[i] == '_' && tolower(word[i]) == c) {
+                    display[i] = word[i];
+                    correct = 1;
+                }
+            }
+
+            if (!correct) remaining_chances--;
+
+            revealed = 1;
+            for (int i = 0; i < len; i++) {
+                if (display[i] == '_') revealed = 0;
+            }
+            if (revealed) win = 1;
+        }
+        system("cls");
+        if (win) {
+            total_score += len;
+            printf("\033[32mWon! Word was: %s\033[0m\n", word);
+            printf("Total score: %d\n\n", total_score);
+            printf("Play again? (y/n): ");
+            scanf(" %c", &play_again);
+        } else {
+            printf("\033[31mLost! Word was: %s\033[0m\n", word);
+            printf("Final score: %d\n", total_score);
+            play_again = 'n';
+            if(total_score > 0)
+            {
+                printf("Input anything to proceed to add your score:");
+                char dud[20];
+                scanf(" %s", dud);
+                addScore(total_score);
+            }
+            printf("Input anything to return to menu:");
+            char dud[20];
+            scanf(" %s", dud);
+            return 0;
+        }
+    }
+    addScore(total_score);
 }
 
 
 void history() {
+    system("cls");
+    orderLB();
+    writeLB();
+    printf("Enter a name: ");
+    char name[50];
+    scanf("%s",name);
+    system("cls");
+    printf("\x1b[31m====================\x1b[0m\n");
+    printf("      \033[22;34mHistory\033[0m\n");
+    printf("\x1b[31m====================\x1b[0m\n");
+    for(int i = 0; i < 100; i++)
+    {
+        if(LB[i].score == 0)
+            break;
+        if(strcmp(LB[i].name, name) == 0)
+            printf("%s - %d\n",LB[i].name, LB[i].score);
+    }
+    printf("\x1b[31m====================\x1b[0m\n");
+    printf("Press Enter to return:");
+    char a;
+    getchar();
+    scanf("%c", &a );
 
-char a;
-   printf("Not implemented please press enter");
-   getchar();
-   scanf("%c", &a );
 }
 
 
@@ -85,9 +190,9 @@ void leaderboard()
     readLB();
     orderLB();
     writeLB();
-    printf("====================\n");
-    printf("    Leaderboard\n");
-    printf("====================\n");
+    printf("\x1b[31m====================\x1b[0m\n");
+    printf("    \033[22;34mLeaderboard\033[0m\n");
+    printf("\x1b[31m====================\x1b[0m\n");
     FILE *ab;
     ab = fopen("leaderboard.txt","r");
     if(ab)
@@ -121,7 +226,7 @@ void leaderboard()
         printf("%s",line);
         i++;
     }
-    printf("====================\n");
+    printf("\x1b[31m====================\x1b[0m\n");
     printf("Input anything to go back.");
     fclose(lbb);
     char a;
@@ -129,26 +234,21 @@ void leaderboard()
    scanf("%c", &a );
 }
 
-void addScore(){
+void addScore(score){
     system("cls");
 
     FILE *w;
     w = fopen("leaderboard.txt", "a");
 
     char name[50];
-    printf("Input name: "); //Get NAME
+    printf("Your name: ");
     scanf("%s", name);
 
-    int n;
-    printf("Input score: "); //Get Score
-    scanf("%d", &n);
-
     fprintf(w, "%s",name);
-    fprintf(w," %d\n", n);
+    fprintf(w," %d\n", score);
 
     fclose(w);
     char a;
-    getchar();
     scanf("%c", &a );
 }
 void orderLB()
@@ -159,7 +259,7 @@ void orderLB()
     while(ok == 1)
     {
         ok = 0;
-        for(int j = 0; j < 5; j++)
+        for(int j = 0; j < 100; j++)
         {
             if(LB[j].score < LB[j+1].score)
             {
@@ -183,7 +283,7 @@ void readLB()
     int i;
     int nr;
     fgets(line,55,r);
-    for(i = 0 ; i <= 5; i++)
+    for(i = 0 ; i <= 100; i++)
     {
         fgets(line,100,r);
         char *token = strtok(line, " ");
@@ -199,8 +299,10 @@ void writeLB()
     FILE *w;
     w = fopen("leaderboard.txt", "w");
     fprintf(w,"\n");
-    for(int i = 0; i < 5; i++)
+    for(int i = 0; i < 100; i++)
     {
+        if(LB[i].score == 0)
+            break;
         fprintf(w,"%s %d\n",LB[i].name,LB[i].score);
     }
     fclose(w);
@@ -218,9 +320,6 @@ void menu(int op)
         break;
     case 3:
         history();
-        break;
-    case 4:
-        addScore();
         break;
     default:
         printf("EXIT!\n");
